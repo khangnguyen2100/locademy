@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronRight, Check, Play, Circle } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, ChevronRight, Check, Play, Circle, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { useState, useEffect } from "react";
 import type { Module, Video } from "../lib/types";
 import { ProgressBar } from "./ProgressBar";
 
@@ -16,7 +16,24 @@ export function Sidebar({
   onSelectVideo,
   onToggleComplete,
 }: Props) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsed, setCollapsed] = useState<Set<string>>(
+    () => new Set(modules.map((m) => m.id))
+  );
+
+  useEffect(() => {
+    if (!activeVideoId) return;
+    const activeModule = modules.find((m) =>
+      m.videos.some((v) => v.id === activeVideoId)
+    );
+    if (activeModule) {
+      setCollapsed((prev) => {
+        if (!prev.has(activeModule.id)) return prev;
+        const next = new Set(prev);
+        next.delete(activeModule.id);
+        return next;
+      });
+    }
+  }, [activeVideoId, modules]);
 
   const toggle = (moduleId: string) => {
     setCollapsed((prev) => {
@@ -29,7 +46,25 @@ export function Sidebar({
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="p-3 space-y-1">
+      <div className="flex items-center justify-end gap-1 px-3 pt-2 pb-1">
+        <button
+          onClick={() => setCollapsed(new Set())}
+          className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors cursor-pointer"
+          title="Expand all"
+        >
+          <ChevronsUpDown className="w-3.5 h-3.5" />
+          Expand all
+        </button>
+        <button
+          onClick={() => setCollapsed(new Set(modules.map((m) => m.id)))}
+          className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors cursor-pointer"
+          title="Collapse all"
+        >
+          <ChevronsDownUp className="w-3.5 h-3.5" />
+          Collapse all
+        </button>
+      </div>
+      <div className="p-3 pt-1 space-y-1">
         {modules.map((module) => {
           const completed = module.videos.filter((v) => v.completed).length;
           const total = module.videos.length;
