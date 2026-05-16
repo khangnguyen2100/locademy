@@ -1,14 +1,16 @@
-import { useState, useCallback, useEffect } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
-  SkipBack,
-  SkipForward,
   AlertCircle,
   Maximize,
   Minimize,
+  SkipBack,
+  SkipForward,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useSubtitle } from "../hooks/useSubtitle";
 import type { Video } from "../lib/types";
+import { SubtitleToggle } from "./SubtitleToggle";
 
 interface Props {
   video: Video;
@@ -21,6 +23,10 @@ export function VideoPlayer({ video, onEnded, onNext, onPrev }: Props) {
   const [error, setError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const src = convertFileSrc(video.path, "stream");
+
+  const { hasSubtitle, subtitleUrl, subtitleEnabled, toggle } = useSubtitle(
+    video.path
+  );
 
   const toggleFullscreen = useCallback(async () => {
     const win = getCurrentWindow();
@@ -62,7 +68,18 @@ export function VideoPlayer({ video, onEnded, onNext, onPrev }: Props) {
             className="w-full h-full object-contain"
             onEnded={onEnded}
             onError={() => setError(true)}
-          />
+          >
+            {subtitleUrl && (
+              <track
+                key={subtitleUrl}
+                kind="subtitles"
+                src={subtitleUrl}
+                label="Subtitles"
+                srcLang="und"
+                default
+              />
+            )}
+          </video>
         )}
       </div>
 
@@ -71,6 +88,9 @@ export function VideoPlayer({ video, onEnded, onNext, onPrev }: Props) {
           {video.title}
         </h2>
         <div className="flex items-center gap-1 ml-4">
+          {hasSubtitle && (
+            <SubtitleToggle enabled={subtitleEnabled} onToggle={toggle} />
+          )}
           <button
             onClick={onPrev ?? undefined}
             disabled={!onPrev}
