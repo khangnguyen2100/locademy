@@ -1,3 +1,6 @@
+mod subtitle;
+use subtitle::{find_subtitle, read_subtitle_as_vtt};
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
@@ -458,6 +461,8 @@ pub fn run() {
             remove_course,
             toggle_video_complete,
             rescan_course,
+            find_subtitle,
+            read_subtitle_as_vtt,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

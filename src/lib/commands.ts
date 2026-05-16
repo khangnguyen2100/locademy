@@ -14,3 +14,9 @@ export const toggleVideoComplete = (courseId: string, videoId: string) =>
 
 export const rescanCourse = (courseId: string) =>
   invoke<Course>("rescan_course", { courseId });
+
+export const findSubtitle = (videoPath: string) =>
+  invoke<string | null>("find_subtitle", { videoPath });
+
+export const readSubtitleAsVtt = (subtitlePath: string) =>
+  invoke<string>("read_subtitle_as_vtt", { subtitlePath });
