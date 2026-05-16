@@ -7,9 +7,10 @@ import {
   SkipBack,
   SkipForward,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSubtitle } from "../hooks/useSubtitle";
 import type { Video } from "../lib/types";
+import { PlaybackSpeedButton } from "./PlaybackSpeedButton";
 import { SubtitleToggle } from "./SubtitleToggle";
 
 interface Props {
@@ -19,9 +20,12 @@ interface Props {
   onPrev: (() => void) | null;
 }
 
+const SPEED_STORAGE_KEY = "playback-speed";
+
 export function VideoPlayer({ video, onEnded, onNext, onPrev }: Props) {
   const [error, setError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const src = convertFileSrc(video.path, "stream");
 
   const { hasSubtitle, subtitleUrl, subtitleEnabled, toggle } = useSubtitle(
@@ -42,14 +46,28 @@ export function VideoPlayer({ video, onEnded, onNext, onPrev }: Props) {
     };
     checkFullscreen();
 
-    const handleKey = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isFullscreen) {
         win.setFullscreen(false);
         setIsFullscreen(false);
       }
+      if (e.code === "Space" && videoRef.current && !videoRef.current.paused) {
+        e.preventDefault();
+        videoRef.current.playbackRate = 2.0;
+      }
     };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space" && videoRef.current) {
+        const stored = localStorage.getItem(SPEED_STORAGE_KEY);
+        videoRef.current.playbackRate = stored ? parseFloat(stored) : 1.0;
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
   }, [isFullscreen]);
 
   return (
@@ -62,12 +80,19 @@ export function VideoPlayer({ video, onEnded, onNext, onPrev }: Props) {
           </div>
         ) : (
           <video
+            ref={videoRef}
             src={src}
             controls
             autoPlay
             className="w-full h-full object-contain"
             onEnded={onEnded}
             onError={() => setError(true)}
+            onLoadedMetadata={() => {
+              const stored = localStorage.getItem(SPEED_STORAGE_KEY);
+              if (stored && videoRef.current) {
+                videoRef.current.playbackRate = parseFloat(stored);
+              }
+            }}
           >
             {subtitleUrl && (
               <track
@@ -88,6 +113,7 @@ export function VideoPlayer({ video, onEnded, onNext, onPrev }: Props) {
           {video.title}
         </h2>
         <div className="flex items-center gap-1 ml-4">
+          <PlaybackSpeedButton videoRef={videoRef} />
           {hasSubtitle && (
             <SubtitleToggle enabled={subtitleEnabled} onToggle={toggle} />
           )}
